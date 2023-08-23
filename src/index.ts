@@ -3,8 +3,12 @@ interface Option {
     type?: 'string' | 'number';
 }
 
+const DEFAULT_LENGTH = 6;
+const MAX_LENGTH_FOR_NUMBER = 16;
+const MIN_NON_ZERO_DIGIT = 1;
+
 const defaultOptions: Option = {
-    length: 6,
+    length: DEFAULT_LENGTH,
     type: 'number',
 };
 
@@ -13,9 +17,11 @@ export function generateVerificationCode({
     type = 'number',
 } = defaultOptions) {
     if (!length) throw new TypeError('Length must be a defined');
-    if (isNaN(length)) throw new TypeError('Length must be a number');
-    if (length < 1) throw new TypeError('Length must be greater than zero');
-    if (type === 'number' && length > 16) {
+    if (typeof length !== 'number' || isNaN(length))
+        throw new TypeError('Length must be a number');
+    if (length < MIN_NON_ZERO_DIGIT)
+        throw new TypeError('Length must be greater than zero');
+    if (type === 'number' && length > MAX_LENGTH_FOR_NUMBER) {
         throw new TypeError(
             'Length must be less than or equal 17 digits for number type'
         );
@@ -25,17 +31,13 @@ export function generateVerificationCode({
     let code = '';
 
     for (let i = 0; i < length; i++) {
-        let randomIndex: number;
-        // if type is number then first digit should not be zero
-        if (type === 'number' && i === 0) {
-            randomIndex = Math.floor(Math.random() * 8) + 1;
-        } else {
-            randomIndex = Math.floor(Math.random() * 9);
-        }
+        const randomIndex = getRandomIndex(type, i === 0);
         code += digits.charAt(randomIndex).toString();
     }
-    if (type === 'number') {
-        return parseInt(code);
-    }
-    return code;
+    return type === 'number' ? parseInt(code) : code;
+}
+
+function getRandomIndex(type: Option['type'], isFirstDigit: boolean): number {
+    const maxIndex = isFirstDigit && type === 'number' ? 8 : 9;
+    return Math.floor(Math.random() * maxIndex) + (isFirstDigit ? 1 : 0);
 }
